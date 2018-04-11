@@ -9,6 +9,7 @@ import android.location.Location;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
@@ -35,6 +36,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest locationRequest;
     private TextView address;
+    private FloatingActionButton floatButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,22 +54,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationRequest.setFastestInterval(5000);
         locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
         mGoogleApiClient.connect();
+        floatButton = findViewById(R.id.fab);
+        floatButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent next2 = new Intent(MapsActivity.this,LocationMap.class);
+                startActivity(next2);
+            }
+        });
+
+        setLocationCoordinates();
+
+    }
+
+    private void setLocationCoordinates() {
+
+
     }
 
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        showMyLocation();
+        Bundle extras = getIntent().getExtras();
+        String name,description;
+        Double longitude,latitude;
+        System.out.println("entro1");
+        if (extras != null) {
+            System.out.println("entro2");
+            name = extras.getString("Name");
+            description = extras.getString("Description");
+            longitude = Double.parseDouble(extras.getString("Longitude"));
+            latitude = Double.parseDouble(extras.getString("Latitude"));
+            System.out.println("entro3");
+            System.out.println(longitude);
+            System.out.println(latitude);
+            LatLng location = new LatLng(longitude, latitude);
+            mMap.addMarker(new MarkerOptions().position(location).title("Marker in "+name+" and "+description));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
+            System.out.println("entro4");
+            // and get whatever type user account id is
+        }else{
+            showMyLocation();
+        }
     }
 
     @SuppressLint("MissingPermission")
