@@ -31,77 +31,77 @@ import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
+    public static final int ADD_LOCATION_REQUEST_CODE = 77;
     private GoogleMap mMap;
     private final int ACCESS_LOCATION_PERMISSION_CODE = 0;
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest locationRequest;
     private TextView address;
     private FloatingActionButton floatButton;
+    private boolean flag = true;
+    private Location lastLocationR;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
-        address = (TextView) findViewById( R.id.address );
+        address = findViewById( R.id.address );
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
         locationRequest = LocationRequest.create();
         mGoogleApiClient = new GoogleApiClient.Builder(this).addConnectionCallbacks(this).
                 addOnConnectionFailedListener(this).addApi(LocationServices.API).build();
+
         locationRequest.setInterval(10000);
         locationRequest.setFastestInterval(5000);
         locationRequest.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY);
         mGoogleApiClient.connect();
+
+
         floatButton = findViewById(R.id.fab);
         floatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Intent next2 = new Intent(MapsActivity.this,LocationMap.class);
-                startActivity(next2);
+                startActivityForResult(next2, ADD_LOCATION_REQUEST_CODE);
             }
         });
 
-        setLocationCoordinates();
-
     }
 
-    private void setLocationCoordinates() {
-
-
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        String name,description;
+        Double longitude,latitude;
+        if(resultCode == RESULT_OK  && requestCode == ADD_LOCATION_REQUEST_CODE){
+            flag = false;
+            name = data.getExtras().getString("Name");
+            description = data.getExtras().getString("Description");
+            longitude = Double.parseDouble(data.getExtras().getString("Longitude"));
+            latitude = Double.parseDouble(data.getExtras().getString("Latitude"));
+            LatLng location = new LatLng(longitude, latitude);
+            lastLocationR = new Location("");
+            lastLocationR.setLatitude(latitude);
+            lastLocationR.setLongitude(longitude);
+            mMap.addMarker(new MarkerOptions().position(location).title("Marker in "+name));
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
+        }
     }
 
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        Bundle extras = getIntent().getExtras();
-        String name,description;
-        Double longitude,latitude;
-        System.out.println("entro1");
-        if (extras != null) {
-            System.out.println("entro2");
-            name = extras.getString("Name");
-            description = extras.getString("Description");
-            longitude = Double.parseDouble(extras.getString("Longitude"));
-            latitude = Double.parseDouble(extras.getString("Latitude"));
-            System.out.println("entro3");
-            System.out.println(longitude);
-            System.out.println(latitude);
-            LatLng location = new LatLng(longitude, latitude);
-            mMap.addMarker(new MarkerOptions().position(location).title("Marker in "+name+" and "+description));
-            mMap.moveCamera(CameraUpdateFactory.newLatLng(location));
-            System.out.println("entro4");
-            // and get whatever type user account id is
-        }else{
-            showMyLocation();
-        }
+        showMyLocation();
     }
 
     @SuppressLint("MissingPermission")
     public void showMyLocation() {
-        if (mMap != null) {
+        if (mMap != null && flag) {
             String[] permissions = {android.Manifest.permission.ACCESS_FINE_LOCATION,
                     android.Manifest.permission.ACCESS_COARSE_LOCATION};
             if (hasPermissions(this, permissions)) {
@@ -167,42 +167,36 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }else {
             ActivityCompat.requestPermissions(this, permissions, ACCESS_LOCATION_PERMISSION_CODE);
         }
-
-
     }
 
     @Override
-    public void onConnectionSuspended( int i )
-    {
+    public void onConnectionSuspended( int i ) {
         LocationServices.FusedLocationApi.removeLocationUpdates( mGoogleApiClient, (PendingIntent) null);
     }
 
-    public void stopLocationUpdates()
-    {
-        LocationServices.FusedLocationApi.removeLocationUpdates( mGoogleApiClient, new LocationListener()
-        {
+    public void stopLocationUpdates() {
+        LocationServices.FusedLocationApi.removeLocationUpdates( mGoogleApiClient, new LocationListener() {
             @Override
-            public void onLocationChanged( Location location )
-            {
-
-            }
+            public void onLocationChanged( Location location ) {}
         } );
     }
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-
     }
 
     public void onFindAddressClicked( View view ) {
         startFetchAddressIntentService();
     }
 
-    public void startFetchAddressIntentService()
-    {
+    public void startFetchAddressIntentService() {
         @SuppressLint("MissingPermission") Location lastLocation = LocationServices.FusedLocationApi.getLastLocation( mGoogleApiClient );
-        if ( lastLocation != null )
-        {
+        if(lastLocationR != null){
+            lastLocation.setLongitude(lastLocationR.getLongitude());
+            lastLocation.setLatitude(lastLocationR.getLatitude());
+        }
+
+        if ( lastLocation != null ) {
             AddressResultReceiver addressResultReceiver = new AddressResultReceiver( new Handler() );
             addressResultReceiver.setAddressResultListener( new AddressResultListener()
             {
@@ -218,8 +212,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             MapsActivity.this.address.setVisibility( View.VISIBLE );
                         }
                     } );
-
-
                 }
             } );
             Intent intent = new Intent( this, FetchAddressIntentService.class );
@@ -229,4 +221,3 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 }
-

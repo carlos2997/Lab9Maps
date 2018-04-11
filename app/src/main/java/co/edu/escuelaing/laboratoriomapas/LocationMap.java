@@ -1,5 +1,6 @@
 package co.edu.escuelaing.laboratoriomapas;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -46,7 +47,8 @@ public class LocationMap extends AppCompatActivity implements View.OnClickListen
                 back.putExtra("Description",description);
                 back.putExtra("Longitude",longitude);
                 back.putExtra("Latitude",latitude);
-                startActivity(back);
+                setResult(Activity.RESULT_OK,back);
+                finish();
             }
         }
     }
